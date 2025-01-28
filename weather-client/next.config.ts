@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const API_URL = process.env.WEATHER_API_URL;
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
   async rewrites() {
     return [
       {
@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
         pathname: "/img/wn/**",
       },
     ],
+  },
+  webpack: (config) => {
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+    };
+    return config;
   },
 };
 
