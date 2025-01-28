@@ -1,0 +1,43 @@
+services:
+  api:
+    container_name: weather-api
+    depends_on:
+      - redis
+    env_file:
+      - path: ./weather-api/.env
+    build:
+      context: ./weather-api
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+      - 9233:9229 # 9229 is the default node debug port
+    volumes:
+      - ./weather-api:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - weather-network
+    command: npm run start:debug
+
+  redis:
+    image: redis
+    hostname: redis-db
+    container_name: redis-db
+    command: /bin/sh -c "redis-server"
+    env_file:
+      - .env
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - ./redis/data:/data
+    networks:
+      - weather-network
+
+networks:
+  weather-network:
+    driver: bridge
+# volumes:
+#   redis:
+#     driver: local
+
+
