@@ -10,6 +10,7 @@ import {
 import {
   CurrentWeatherApiResponse,
   ForecastApiResponse,
+  List,
 } from 'src/config/api-client/open-weather-api/open-weather.model';
 import {
   ReservamosApiBaseUrl,
@@ -55,7 +56,10 @@ export class PlaceService {
     return placesWithWeather;
   }
 
-  async getWeekForecast(lat: string, lon: string) {
+  async getWeekForecast(
+    lat: string,
+    lon: string,
+  ): Promise<ForecastApiResponse> {
     const cachedForecast = await this.redis.get(`forecast:${lat}:${lon}`);
     if (cachedForecast) {
       this.logger.log(`Returning cached forecast for ${lat}, ${lon}`);
@@ -74,9 +78,19 @@ export class PlaceService {
         ),
     );
 
+    const dailyForecasts = this.groupForecastsByDay(data.list);
+
+    const formattedForecast: ForecastApiResponse = {
+      ...data,
+      list: dailyForecasts,
+    };
+
     this.logger.log(`Caching forecast for ${lat}, ${lon}`);
-    await this.redis.set(`forecast:${lat}:${lon}`, JSON.stringify(data));
-    return data;
+    await this.redis.set(
+      `forecast:${lat}:${lon}`,
+      JSON.stringify(formattedForecast),
+    );
+    return formattedForecast;
   }
 
   private async getCities(): Promise<Place[]> {
@@ -118,5 +132,40 @@ export class PlaceService {
     );
 
     return data;
+  }
+
+  private groupForecastsByDay(list: List[]): List[] {
+    // First, group forecasts by day
+    const forecastsByDay = list.reduce(
+      (acc: { [key: string]: List[] }, forecast: List) => {
+        const date = new Date(forecast.dt * 1000).toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(forecast);
+        return acc;
+      },
+      {},
+    );
+
+    // For each day, get the forecast closest to noon
+    const dailyForecasts = Object.entries(forecastsByDay).map(
+      ([date, forecasts]) => {
+        // Sort forecasts by how close they are to noon (12:00)
+        return forecasts.reduce((closest: List, current: List) => {
+          const currentHour = new Date(current.dt * 1000).getHours();
+          const closestHour = new Date(closest.dt * 1000).getHours();
+
+          // Calculate distance from noon (12:00)
+          const currentDistance = Math.abs(12 - currentHour);
+          const closestDistance = Math.abs(12 - closestHour);
+
+          return currentDistance < closestDistance ? current : closest;
+        }, forecasts[0]);
+      },
+    );
+
+    // Sort by date and limit to 5 days
+    return dailyForecasts.sort((a: List, b: List) => a.dt - b.dt).slice(0, 5);
   }
 }

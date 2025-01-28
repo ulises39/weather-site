@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PlaceService } from './place.service';
 
-@Controller('place')
+@Controller('places')
 export class PlaceController {
   constructor(private readonly placeService: PlaceService) {}
 
