@@ -1,0 +1,280 @@
+{
+	"info": {
+		"_postman_id": "d986212a-f81f-4858-b129-70ff3e6eb56e",
+		"name": "Weather-API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "16027953"
+	},
+	"item": [
+		{
+			"name": "Get Places",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"function getRandomIndex(arr) {\r",
+							"  return Math.floor(Math.random() * arr.length);\r",
+							"}\r",
+							"\r",
+							"let places = pm.response.json();\r",
+							"\r",
+							"let randomPlace = places[getRandomIndex(places)];\r",
+							"console.log(randomPlace);\r",
+							"pm.collectionVariables.set('lat', randomPlace.lat);\r",
+							"pm.collectionVariables.set('long', randomPlace.long);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{localUrl}}/places",
+					"host": [
+						"{{localUrl}}"
+					],
+					"path": [
+						"places"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Place Forecast",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let forecast = pm.response.json();\r",
+							"\r",
+							"function extractDtValues(jsonObj) {\r",
+							"  return jsonObj.list.map(item => item.dt);\r",
+							"}\r",
+							"\r",
+							"function convertTimestampsToDate(timestamps) {\r",
+							"  return timestamps.map(timestamp => {\r",
+							"    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds\r",
+							"    return date.toDateString();\r",
+							"  });\r",
+							"}\r",
+							"\r",
+							"// Example usage\r",
+							"const dtValues = extractDtValues(forecast);\r",
+							"console.log(`dtValues:`);\r",
+							"console.log(dtValues);\r",
+							"const readableDates = convertTimestampsToDate(dtValues);\r",
+							"console.log(readableDates); // Outputs an array of human-readable dates"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{localUrl}}/places/forecast?lat={{lat}}&lon={{long}}",
+					"host": [
+						"{{localUrl}}"
+					],
+					"path": [
+						"places",
+						"forecast"
+					],
+					"query": [
+						{
+							"key": "lat",
+							"value": "{{lat}}"
+						},
+						{
+							"key": "lon",
+							"value": "{{long}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Place Forecast (From API)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let forecast = pm.response.json();\r",
+							"\r",
+							"function extractDtValues(jsonObj) {\r",
+							"  return jsonObj.list.map(item => item.dt);\r",
+							"}\r",
+							"\r",
+							"function convertTimestampsToDate(timestamps) {\r",
+							"  return timestamps.map(timestamp => {\r",
+							"    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds\r",
+							"    return date.toLocaleString();\r",
+							"  });\r",
+							"}\r",
+							"\r",
+							"// Example usage\r",
+							"const dtValues = extractDtValues(forecast);\r",
+							"console.log(`dtValues:`);\r",
+							"console.log(dtValues);\r",
+							"const readableDates = convertTimestampsToDate(dtValues);\r",
+							"console.log(readableDates); // Outputs an array of human-readable dates"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://api.openweathermap.org/data/2.5/forecast?appid={{API_KEY}}&units=metric&lang=es&lat={{lat}}&lon={{long}}",
+					"protocol": "http",
+					"host": [
+						"api",
+						"openweathermap",
+						"org"
+					],
+					"path": [
+						"data",
+						"2.5",
+						"forecast"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "524901",
+							"disabled": true
+						},
+						{
+							"key": "appid",
+							"value": "{{API_KEY}}"
+						},
+						{
+							"key": "units",
+							"value": "metric"
+						},
+						{
+							"key": "cnt",
+							"value": "7",
+							"disabled": true
+						},
+						{
+							"key": "lang",
+							"value": "es"
+						},
+						{
+							"key": "lat",
+							"value": "{{lat}}"
+						},
+						{
+							"key": "lon",
+							"value": "{{long}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Place Weather(From API)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.openweathermap.org/data/2.5/weather?lat=19.4326077&lon=-99.133208&appid=0eebd1fcf852d29ca0340c5c451d4c9a&units=metric&lang=es",
+					"protocol": "https",
+					"host": [
+						"api",
+						"openweathermap",
+						"org"
+					],
+					"path": [
+						"data",
+						"2.5",
+						"weather"
+					],
+					"query": [
+						{
+							"key": "lat",
+							"value": "19.4326077"
+						},
+						{
+							"key": "lon",
+							"value": "-99.133208"
+						},
+						{
+							"key": "appid",
+							"value": "0eebd1fcf852d29ca0340c5c451d4c9a"
+						},
+						{
+							"key": "units",
+							"value": "metric"
+						},
+						{
+							"key": "lang",
+							"value": "es"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "localUrl",
+			"value": "localhost:3005/api",
+			"type": "string"
+		},
+		{
+			"key": "API_KEY",
+			"value": "0eebd1fcf852d29ca0340c5c451d4c9a",
+			"type": "string"
+		},
+		{
+			"key": "lat",
+			"value": ""
+		},
+		{
+			"key": "long",
+			"value": ""
+		}
+	]
+}
