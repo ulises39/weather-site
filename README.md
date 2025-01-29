@@ -48,7 +48,7 @@ Weather Site es una aplicación web que permite visualizar el pronóstico del cl
 1. Clonar el repositorio:
 
 ```bash
-git clone https://github.com/tu-usuario/weather-site.git
+git clone https://github.com/ulises39/weather-site.git
 cd weather-site
 ```
 
@@ -107,7 +107,7 @@ weather-site
 └───weather-client # Proyecto Frontend
 ```
 
-## Visualización del Proyecto
+## Visualización del Proyecto (Algunos ejemplos)
 
 ### Vista principal
 
