@@ -6,8 +6,8 @@ export class PlaceController {
   constructor(private readonly placeService: PlaceService) {}
 
   @Get()
-  findAll() {
-    return this.placeService.findAll();
+  findAll(@Query('q') param: string) {
+    return this.placeService.findAll(param);
   }
 
   @Get('forecast')

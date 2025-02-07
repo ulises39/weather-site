@@ -2,19 +2,39 @@
 import { usePlacesContext } from "@/contexts/PlacesContext";
 import { PlaceWeatherProps } from "@/types/place-weather";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PlaceCard } from "./PlaceCard";
 
 export default function PlaceForecast() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { places, placeForecast, forecastLoading, error, getPlaceForecast } =
-    usePlacesContext();
+  const {
+    places,
+    filteredPlaces,
+    placeForecast,
+    forecastLoading,
+    error,
+    getPlaceForecast,
+  } = usePlacesContext();
   const [placeWeatherForecast, setPlaceWeatherForecast] = useState<
     PlaceWeatherProps[]
   >([]);
   const cityNameParam = searchParams.get("city");
   const lastFetchedCity = useRef<string | null>(null);
+
+  const findPlace = useCallback(
+    (cityName: string) => {
+      if (filteredPlaces.length > 0) {
+        const filteredPlace = filteredPlaces.find(
+          (p) => p.city_name === cityName
+        );
+        if (filteredPlace) return filteredPlace;
+      }
+      // Then check regular places
+      return places.find((p) => p.city_name === cityName);
+    },
+    [filteredPlaces, places]
+  );
 
   useEffect(() => {
     if (!cityNameParam) {
@@ -23,11 +43,12 @@ export default function PlaceForecast() {
 
     if (
       places.length > 0 &&
-      !places.some((p) => p.city_name === cityNameParam)
+      filteredPlaces.length > 0 &&
+      !findPlace(cityNameParam)
     ) {
       notFound();
     }
-  }, [cityNameParam, places]);
+  }, [cityNameParam, places, filteredPlaces, findPlace]);
 
   // Only fetch forecast when city changes
   useEffect(() => {
@@ -35,7 +56,7 @@ export default function PlaceForecast() {
       if (!cityNameParam || !places.length) return;
       if (cityNameParam === lastFetchedCity.current) return;
 
-      const place = places.find((p) => p.city_name === cityNameParam);
+      const place = findPlace(cityNameParam);
       if (!place) return;
 
       lastFetchedCity.current = cityNameParam;
@@ -43,13 +64,13 @@ export default function PlaceForecast() {
     };
 
     fetchForecast();
-  }, [cityNameParam, places, getPlaceForecast]);
+  }, [cityNameParam, places, getPlaceForecast, findPlace]);
 
   // Transform forecast data when it changes
   useEffect(() => {
     if (!placeForecast || !cityNameParam) return;
 
-    const place = places.find((p) => p.city_name === cityNameParam);
+    const place = findPlace(cityNameParam);
     if (!place) return;
 
     const forecasts = placeForecast.list.map((forecast) => ({
@@ -63,7 +84,7 @@ export default function PlaceForecast() {
     }));
 
     setPlaceWeatherForecast(forecasts);
-  }, [placeForecast, cityNameParam, places]);
+  }, [placeForecast, cityNameParam, places, findPlace]);
 
   // Reset lastFetchedCity when component unmounts
   useEffect(() => {
@@ -111,4 +132,3 @@ export default function PlaceForecast() {
     </main>
   );
 }
-

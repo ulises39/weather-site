@@ -13,6 +13,7 @@ import {
   List,
 } from 'src/config/api-client/open-weather-api/open-weather.model';
 import {
+  getUrlWithParam,
   ReservamosApiBaseUrl,
   ReservamosApiEndpoints,
 } from 'src/config/api-client/reservamos-api/config';
@@ -31,14 +32,16 @@ export class PlaceService {
     this.redis = this.redisService.getOrThrow();
   }
 
-  async findAll() {
-    const cachedPlaces = await this.redis.get('places');
+  async findAll(param?: string) {
+    const redisKey = param ? `places:${param}` : 'places';
+
+    const cachedPlaces = await this.redis.get(redisKey);
     if (cachedPlaces) {
-      this.logger.log('Returning all cached places');
+      this.logger.log(`Returning all cached places for ${redisKey}`);
       return JSON.parse(cachedPlaces) as PlaceWeatherResponseDto[];
     }
 
-    const cities = await this.getCities();
+    const cities = await this.getCities(param);
     this.logger.log(`Found ${cities.length} cities`);
 
     const placesWithWeather: PlaceWeatherResponseDto[] = [];
@@ -51,8 +54,10 @@ export class PlaceService {
     );
     this.logger.log(`Found ${placesWithWeather.length} cities with weather`);
 
-    this.logger.log(`Caching ${placesWithWeather.length} places`);
-    await this.redis.set('places', JSON.stringify(placesWithWeather));
+    this.logger.log(
+      `Caching ${placesWithWeather.length} places with key ${redisKey}`,
+    );
+    await this.redis.set(redisKey, JSON.stringify(placesWithWeather));
     return placesWithWeather;
   }
 
@@ -93,18 +98,47 @@ export class PlaceService {
     return formattedForecast;
   }
 
-  private async getCities(): Promise<Place[]> {
+  async getPlacesWeatherByFilter(param: string) {
     const { data } = await firstValueFrom(
-      this.httpService
-        .get<Place[]>(`${ReservamosApiBaseUrl}${ReservamosApiEndpoints.Places}`)
-        .pipe(
-          catchError((error) => {
-            this.logger.error(
-              `Error getting places from Reservamos-API: ${error}`,
-            );
-            throw error;
-          }),
-        ),
+      this.httpService.get<Place[]>(getUrlWithParam(param)).pipe(
+        catchError((error) => {
+          this.logger.error(`Error getting places with query param: ${error}`);
+          throw error;
+        }),
+      ),
+    );
+
+    const cities = data.filter((city) => city.result_type === 'city');
+
+    const placesWithWeather: PlaceWeatherResponseDto[] = [];
+
+    await Promise.all(
+      cities.map(async (city) => {
+        const weather = await this.getCurrentWeather(city.lat, city.long);
+        placesWithWeather.push({ ...city, weather_data: weather });
+      }),
+    );
+    this.logger.log(
+      `Found ${placesWithWeather.length} cities with weather and query param ${param}`,
+    );
+
+    return placesWithWeather;
+  }
+
+  private async getCities(param?: string): Promise<Place[]> {
+    const url = param
+      ? getUrlWithParam(param)
+      : `${ReservamosApiBaseUrl}${ReservamosApiEndpoints.Places}`;
+
+    const { data } = await firstValueFrom(
+      this.httpService.get<Place[]>(url).pipe(
+        catchError((error) => {
+          this.logger.error(
+            `Error getting places from Reservamos-API: ${error}`,
+          );
+          throw error;
+        }),
+      ),
     );
 
     return data.filter((place) => place.result_type === 'city');

@@ -14,10 +14,10 @@ export function PlaceCard({ place, timestamp, onClick }: PlaceCardProps) {
   const iconUrl = WEATHER_API_ROUTES.icons.url(place.icon);
   const date = timestamp
     ? new Date(timestamp * 1000).toLocaleDateString("es-MX", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    })
     : "Hoy";
 
   return (

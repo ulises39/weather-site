@@ -15,28 +15,36 @@ import {
 
 interface PlacesContextType {
   places: PlaceWeatherApiResponse[];
-  placesLoading: boolean; // renamed from loading
-  forecastLoading: boolean; // new loading state
+  placesLoading: boolean;
+  forecastLoading: boolean;
+  placeForecast: ForecastApiResponse | null;
+  filterPlacesLoading: boolean;
+  filteredPlaces: PlaceWeatherApiResponse[];
   error: string | null;
   refreshPlaces: () => Promise<void>;
+  filterPlaces: (query: string) => Promise<void>;
+  clearFilter: () => Promise<void>;
   getPlaceForecast: (place: PlaceWeatherApiResponse) => Promise<void>;
-  placeForecast: ForecastApiResponse | null;
 }
 
 const PlacesContext = createContext<PlacesContextType | undefined>(undefined);
 
 export function PlacesProvider({ children }: { children: ReactNode }) {
+  const [placesLoading, setPlacesLoading] = useState(true);
   const [places, setPlaces] = useState<PlaceWeatherApiResponse[]>([]);
+  const [forecastLoading, setForecastLoading] = useState(false);
   const [placeForecast, setPlaceForecast] =
     useState<ForecastApiResponse | null>(null);
-  const [placesLoading, setPlacesLoading] = useState(true);
-  const [forecastLoading, setForecastLoading] = useState(false);
+  const [filterPlacesLoading, setFilterPlacesLoading] = useState(false);
+  const [filteredPlaces, setFilteredPlaces] = useState<
+    PlaceWeatherApiResponse[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPlaces = useCallback(async () => {
     try {
       setPlacesLoading(true);
-      const response = await fetch(WEATHER_API_ROUTES.places.list);
+      const response = await fetch(WEATHER_API_ROUTES.places.list());
       if (!response.ok) {
         throw new Error("Failed to fetch places");
       }
@@ -49,6 +57,32 @@ export function PlacesProvider({ children }: { children: ReactNode }) {
       setPlacesLoading(false);
     }
   }, []); // memoize fetchPlaces
+
+  const filterPlaces = useCallback(async (query: string) => {
+    try {
+      setFilterPlacesLoading(true);
+      const response = await fetch(WEATHER_API_ROUTES.places.list(query));
+      if (!response.ok) {
+        throw new Error(`Failed to fetch places by filter ${query}`);
+      }
+      const data = (await response.json()) as PlaceWeatherApiResponse[];
+      setFilteredPlaces(data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to fetch places by filter ${query}`
+      );
+    } finally {
+      setFilterPlacesLoading(false);
+    }
+  }, []);
+
+  const clearFilter = useCallback(async () => {
+    setFilteredPlaces([]);
+    await fetchPlaces();
+  }, [fetchPlaces]);
 
   const getPlaceForecast = useCallback(
     async (place: PlaceWeatherApiResponse) => {
@@ -90,6 +124,10 @@ export function PlacesProvider({ children }: { children: ReactNode }) {
         refreshPlaces: fetchPlaces,
         getPlaceForecast,
         placeForecast,
+        filterPlaces,
+        filteredPlaces,
+        filterPlacesLoading,
+        clearFilter,
       }}
     >
       {children}
